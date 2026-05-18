@@ -6,15 +6,14 @@
 
 PyTorch Training Optimizer Skill is a Codex skill for diagnosing and optimizing PyTorch research training code. It focuses on training throughput, GPU utilization, memory efficiency, and multi-GPU scaling.
 
-It is useful for common training-system issues such as:
+It is useful for training-system problems such as:
 
-- Training without BF16/FP16 mixed precision
-- Not using `torch.compile`, or losing most compile benefits to graph breaks
-- Running generic attention paths on H100/H200/B200 instead of evaluating faster attention backends
-- Using gradient checkpointing first in multi-GPU training when FSDP/ZeRO should be evaluated as the primary memory lever
-- Calling `.item()`, `.cpu()`, `.numpy()`, or synchronous loggers every step
-- Starving GPUs because of dataloader, decoding, prefetching, or host-to-device transfer bottlenecks
-- Creating periodic long steps through checkpointing, evaluation, visualization, or logging in the hot path
+- Diagnosing low GPU utilization, high step time, unstable throughput, or poor multi-GPU scaling
+- Evaluating compute-side optimizations such as mixed precision, `torch.compile`, attention backends, and kernel fusion
+- Choosing distributed and memory strategies such as DDP, FSDP, ZeRO, and activation checkpointing
+- Optimizing input-pipeline bottlenecks from dataloaders, decoding, prefetching, host-to-device transfer, and storage access
+- Reducing hot-path overhead from synchronization, logging, evaluation, checkpointing, and visualization
+- Validating speedups with before/after metrics while keeping loss, task metrics, and checkpoint semantics comparable
 
 ## Download and Install
 

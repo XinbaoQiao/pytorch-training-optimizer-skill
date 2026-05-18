@@ -6,15 +6,14 @@
 
 PyTorch Training Optimizer Skill 是一个面向研究训练代码的 Codex skill，用来诊断和优化 PyTorch 训练吞吐、GPU 利用率、显存效率和多卡扩展效率。
 
-它适合处理这些常见问题：
+它适合处理这些训练系统问题：
 
-- 训练没有启用 BF16/FP16 混合精度
-- 没有使用 `torch.compile`，或存在大量 graph break
-- H100/H200/B200 上仍然走通用 attention 路径
-- 多卡训练里优先堆 gradient checkpointing，而不是先评估 FSDP/ZeRO
-- 每个 step 用 `.item()`、`.cpu()`、`.numpy()` 或同步 logger 记录指标
-- dataloader、解码、预取、host-to-device copy 导致 GPU 吃不满
-- checkpoint、evaluation、可视化或 logging 在训练热路径里造成周期性长 step
+- 定位 GPU 利用率低、step time 高、吞吐不稳定或多卡扩展效率差的原因
+- 评估混合精度、`torch.compile`、attention backend、kernel fusion 等计算侧优化
+- 选择 DDP、FSDP、ZeRO、activation checkpointing 等分布式和显存策略
+- 优化 dataloader、解码、预取、host-to-device transfer 和存储访问带来的输入瓶颈
+- 减少训练循环里的同步、日志、评估、checkpoint、可视化等热路径开销
+- 用 before/after 指标验证优化是否真正提升速度，同时保持 loss、metric 和 checkpoint 语义可比
 
 ## 下载和安装
 
