@@ -1,0 +1,7 @@
+interface:
+  display_name: "PyTorch Training Optimizer"
+  short_description: "Optimize PyTorch training throughput"
+  default_prompt: "Use $pytorch-training-optimizer to diagnose my PyTorch training bottleneck and propose safe infrastructure-only speedups."
+
+policy:
+  allow_implicit_invocation: true
