@@ -104,3 +104,8 @@ Use $pytorch-training-optimizer to find why my 8xH200 training run has low GPU u
 ## 参考和整合
 
 整理时参考了公开的 training optimization / PyTorch engineering router、Flash Attention 专项 skill，也进一步吸收了 TorchTitan、DeepSpeed/ZeRO、Megatron-Core/NeMo、Liger Kernel、Mosaic Streaming、WebDataset、NVIDIA DALI 和 PyTorch 官方 profiler、DataLoader、FSDP/compile、Distributed Checkpoint 文档。整合重点是诊断优先、按瓶颈路由、对 attention/backend/kernel 做形状和正确性验证，并把 checkpoint、logging、dataloader 这类真实训练里的 stall 纳入 profiling。
+
+## Contributors
+
+- [XinbaoQiao](https://github.com/XinbaoQiao): 项目维护者
+- OpenAI Codex: 协助整理、编写和更新 skill 内容

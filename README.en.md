@@ -104,3 +104,8 @@ This skill prioritizes infrastructure-only optimization: measure a baseline, ide
 ## References and Integration
 
 The skill incorporates ideas from public training optimization and PyTorch engineering routers, a Flash Attention focused skill, and systems such as TorchTitan, DeepSpeed/ZeRO, Megatron-Core/NeMo, Liger Kernel, Mosaic Streaming, WebDataset, NVIDIA DALI, and official PyTorch profiler, DataLoader, FSDP/compile, and Distributed Checkpoint documentation. The integration emphasizes diagnosis-first routing, bottleneck-specific fixes, shape and correctness validation for attention/backend/kernel changes, and profiling real training stalls from checkpointing, logging, and dataloading.
+
+## Contributors
+
+- [XinbaoQiao](https://github.com/XinbaoQiao): project maintainer
+- OpenAI Codex: assisted with organizing, writing, and updating the skill content
