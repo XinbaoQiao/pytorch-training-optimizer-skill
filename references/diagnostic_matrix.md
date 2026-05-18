@@ -13,6 +13,7 @@ Collect these before changing code when practical:
 - Host-side gap between steps and dataloader wait time
 - Forward, backward, optimizer, scheduler, evaluation, checkpoint, and logging time
 - Multi-GPU communication time, NCCL timeline, and rank imbalance
+- Checkpoint blocking time and checkpoint-stall-adjusted goodput
 - Task metric, validation loss, or short loss-curve proxy
 
 ## Classification
@@ -20,16 +21,17 @@ Collect these before changing code when practical:
 | Signal | Likely bottleneck | First checks |
 | --- | --- | --- |
 | Low GPU utilization, gaps before kernels, CPU busy | Input pipeline | `num_workers`, `pin_memory`, `persistent_workers`, `prefetch_factor`, decode cost, storage latency, collation cost |
-| High GPU utilization, high step time, stable memory | Compute-bound | BF16/FP16, optimized attention, fused ops, `torch.compile`, batch size |
-| High memory use, OOM, tiny microbatches | Memory-bound | Batch sizing, FSDP/ZeRO, optimizer state, activation checkpointing only when activation memory dominates |
+| High GPU utilization, high step time, stable memory | Compute-bound | BF16/FP16, TF32 policy, optimized attention, fused ops, `torch.compile`, batch size |
+| High memory use, OOM, tiny microbatches | Memory-bound | Batch sizing, FSDP/FSDP2/ZeRO, optimizer state, activation checkpointing only when activation memory dominates |
 | Multi-GPU scaling is poor, NCCL-heavy traces | Communication-bound | FSDP/DDP strategy, bucket/group sizing, accumulation, topology, rank imbalance, overlap |
-| Many tiny kernels, high CPU launch overhead | Python or launch overhead | Remove hot-path Python work, vectorize small ops, reduce graph breaks, use `torch.compile` |
+| Many tiny kernels, high CPU launch overhead | Python or launch overhead | Remove hot-path Python work, vectorize small ops, reduce graph breaks, use `torch.compile(mode="reduce-overhead")` when appropriate |
 | Frequent host-device syncs | Synchronization-bound | Remove per-step `.item()`, `.cpu()`, `.numpy()`, explicit syncs, synchronous logging |
-| Periodic long steps | Side-effect overhead | Reduce logging/eval/checkpoint cadence, rank-zero-only work, async writes |
+| Periodic long steps | Side-effect overhead | Reduce logging/eval/checkpoint cadence, rank-zero-only work, async writes, distributed checkpointing |
 | First trace is inconclusive | Measurement issue | Add profiler ranges, exclude warmup, run enough steady-state steps, compare p50/p95 |
 
 ## Fast Triage Commands
 
+- `python scripts/collect_env.py --output env.json` for environment capture.
 - `nvidia-smi dmon -s pucm` for coarse utilization and memory behavior.
 - `torch.profiler` for step decomposition and dataloader gaps.
 - Nsight Systems for CPU/GPU overlap, kernel launch gaps, and NCCL timelines.
@@ -44,10 +46,11 @@ Ask at most one short diagnostic question if the user has not provided enough si
 - For "low GPU utilization": "Does the profiler show CPU/dataloader gaps or many tiny kernels?"
 - For "OOM": "Is memory dominated by parameters/optimizer states, activations, attention, or batch data?"
 - For "multi-GPU is slower": "What is single-GPU throughput versus N-GPU throughput, and does the trace show NCCL time or rank imbalance?"
-- For "compile did not help": "Are there graph breaks, dynamic shapes, unsupported ops, or one-time compile cost included in the benchmark?"
+- For "compile did not help": "Are there graph breaks, dynamic shapes, unsupported ops, recompiles, or one-time compile cost included in the benchmark?"
 
 ## Guardrails
 
 - Do not count compile warmup, dataloader startup, or cache population as steady-state training time.
 - Do not call a speedup valid if effective batch size, precision policy, dropout behavior, or data order changed unintentionally.
 - When changing precision or compiler settings, compare a short loss curve or deterministic smoke metric against the baseline.
+- Before editing code, use `references/change_confirmation.md` and wait for the user to approve the exact change set.

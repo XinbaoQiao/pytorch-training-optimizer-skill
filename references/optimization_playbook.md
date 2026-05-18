@@ -1,6 +1,6 @@
 # Optimization Playbook
 
-Use these patterns after the baseline identifies a likely bottleneck.
+Use these patterns after the baseline identifies a likely bottleneck. Before applying any pattern to code, ask the user to confirm the exact change set and explain upside, risks, rollback, and validation.
 
 ## Mixed Precision
 
@@ -22,6 +22,7 @@ Checks:
 - Compare a short loss curve before and after.
 - For FP16, use gradient scaling unless the framework already handles it.
 - For FP32-heavy matmuls on Ampere or newer GPUs, consider TF32 policy explicitly and record it in the report.
+- For FP8, use `references/precision_policy.md` and require a stable BF16 baseline first.
 
 ## torch.compile
 
@@ -36,8 +37,13 @@ Practical rules:
 - Benchmark after warmup and exclude compile cold start.
 - Start with the model or hot submodules before compiling the whole training step.
 - Watch for graph breaks from Python control flow, dynamic shapes, `.item()`, data-dependent branches, mutation-heavy code, and unsupported custom ops.
+- Use `fullgraph=True` as a debugging tool to force graph-break visibility.
+- Consider `mode="reduce-overhead"` when the trace shows many small kernels and launch overhead.
+- Consider `mode="max-autotune"` for matmul/conv-heavy workloads with stable shapes and enough warmup budget.
 - Keep an eager-mode flag for rollback.
 - For distributed jobs, compile only after the distributed wrapping order is verified for the local PyTorch version.
+
+Read `references/compiler_and_cuda_graphs.md` before changing compiler behavior.
 
 ## Attention Kernels
 
@@ -63,12 +69,15 @@ Checklist:
 - Confirm mask semantics, dropout, causal mode, and dtype are supported.
 - Compare max/mean output difference on a small deterministic input.
 - Benchmark enough sequence lengths to avoid optimizing for a non-representative shape.
+- Use `scripts/sdpa_probe.py` for a local smoke benchmark when useful.
+
+Read `references/attention_backend_matrix.md` before changing attention code.
 
 ## FSDP, ZeRO, and Checkpointing
 
 Choose the memory lever by what consumes memory:
 
-- Parameters/gradients/optimizer state dominate: prefer FSDP or ZeRO.
+- Parameters/gradients/optimizer state dominate: prefer FSDP/FSDP2 or ZeRO.
 - Activations dominate: use activation checkpointing selectively.
 - Both dominate: combine sharding with selective checkpointing and measure recompute cost.
 
@@ -78,6 +87,9 @@ Rules:
 - Preserve effective global batch size unless explicitly changing the experiment.
 - Confirm checkpoint load/save compatibility after FSDP/ZeRO changes.
 - For PyTorch FSDP2, initialize the optimizer after sharding and call the module normally so hooks run.
+- For expensive save stalls, evaluate distributed checkpointing and async checkpointing before reducing checkpoint safety.
+
+Read `references/distributed_memory_strategy.md` and `references/checkpoint_goodput.md` before changing these paths.
 
 ## Dataloader and Transfers
 
@@ -107,6 +119,9 @@ Tune empirically:
 - Move heavy image/video/3D preprocessing out of the step loop when possible.
 - Cache or precompute expensive deterministic transforms when input starvation is visible.
 - For large shuffled corpora, avoid per-worker giant Python lists of shuffled pointers; prefer compact deterministic index mappings when possible.
+- Use `scripts/dataloader_sweep.py` if the project can expose a dataset factory.
+
+Read `references/dataloader_storage.md` before proposing storage-layout changes.
 
 ## Logging and Synchronization
 
@@ -143,6 +158,7 @@ If checkpoint steps create periodic stalls:
 - Evaluate asynchronous checkpointing when checkpoint cost is visible in the profile.
 - Keep recovery safety: do not simply checkpoint less often unless the user accepts the risk.
 - Verify resume after changing checkpoint format or save path.
+- Report checkpoint-stall-adjusted goodput, not only raw step time.
 
 ## Frameworks
 

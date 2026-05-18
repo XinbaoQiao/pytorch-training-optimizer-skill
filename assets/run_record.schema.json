@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PyTorch Training Run Record",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "run_identity": {
+      "type": "object"
+    },
+    "run_conditions": {
+      "type": "object"
+    },
+    "metrics": {
+      "type": "object"
+    },
+    "correctness": {
+      "type": "object"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_conditions",
+    "metrics"
+  ]
+}

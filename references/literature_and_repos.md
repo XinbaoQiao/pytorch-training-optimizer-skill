@@ -17,6 +17,7 @@ Use this file when the task benefits from proven training-system designs. Treat 
 | --- | --- | --- | --- |
 | FlashAttention / FA2 / FA3 / FA4 | IO-aware attention, Hopper-specific FA3, Blackwell-oriented FA4 ideas | Attention dominates time or memory, especially long sequence transformer-style models | Hardware generation, CUDA/PyTorch/flash-attn versions, mask support, dropout, dtype, backward support |
 | torchao Float8 + FSDP2 | Float8 linear layers and Float8 all-gather for modern GPUs | Hopper/Blackwell training has enough matmul/communication cost to justify FP8 risk | Loss parity, scaling granularity, unsupported ops, communication dtype, evaluation quality |
+| Transformer Engine | FP8/MXFP8/NVFP4 paths and fused transformer primitives on NVIDIA GPUs | Existing NVIDIA transformer stack or Megatron/NeMo-style code | GPU generation, AMP integration, checkpoint/state compatibility, convergence parity |
 | Liger Kernel | Fused and chunked Triton kernels for RMSNorm, RoPE, SwiGLU, cross entropy, and alignment losses | HF-style LLM training or SFT/post-training spends time or memory in common transformer ops/losses | Model support, exactness tests, Triton/Torch versions, multi-GPU compatibility, convergence parity |
 | xFormers | Memory-efficient attention variants and operator alternatives | Older PyTorch versions, diffusion stacks, or nonstandard attention variants need a practical fallback | Binary compatibility, fallback path, shape/mask support, whether SDPA/FlashAttention is already faster |
 
@@ -33,9 +34,10 @@ Use this file when the task benefits from proven training-system designs. Treat 
 
 - Report `tokens/sec/GPU` or `samples/sec/GPU` alongside step time so multi-GPU changes are comparable.
 - Track MFU/TFLOPs when FLOP estimates are meaningful for transformer-style workloads.
-- Record GPU memory, dataloader wait, communication time, and side-effect overhead; a single throughput number hides regressions.
+- Record GPU memory, dataloader wait, communication time, checkpoint blocking time, and side-effect overhead; a single throughput number hides regressions.
 - Compare a short loss curve or metric proxy after precision, kernel, compile, sharding, or dataloader changes.
 - Keep exact run conditions: hardware, interconnect, PyTorch/CUDA versions, precision, attention backend, compile mode, distributed strategy, batch size, sequence length, and checkpoint/logging cadence.
+- Before adopting a library pattern, ask the user to approve the dependency and explain fallback behavior.
 
 ## References
 
@@ -46,6 +48,7 @@ Use this file when the task benefits from proven training-system designs. Treat 
 - ZeRO paper: https://arxiv.org/abs/1910.02054
 - Megatron-Core: https://developer.nvidia.com/megatron-core
 - NVIDIA NeMo: https://github.com/NVIDIA/NeMo
+- NVIDIA Transformer Engine: https://github.com/NVIDIA/TransformerEngine
 - FlashAttention: https://github.com/Dao-AILab/flash-attention
 - FlashAttention-3 paper: https://arxiv.org/abs/2407.08608
 - FlashAttention-4 paper: https://arxiv.org/abs/2603.05451

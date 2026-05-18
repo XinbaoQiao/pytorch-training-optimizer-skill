@@ -1,8 +1,8 @@
 # Profiling Workflow
 
-Use this when the project has no reliable baseline yet.
+Use this when the project has no reliable baseline yet. Start with lightweight timing; use heavier profilers only when the cheap signal is insufficient.
 
-## Timing Harness
+## Level 0: Lightweight Timing
 
 Measure steady-state step time:
 
@@ -33,9 +33,12 @@ Rules:
 
 - Synchronize only around measurement windows, not inside normal training.
 - Exclude compile warmup, dataloader startup, cache fill, and first-epoch one-time work.
-- Report p50/p95, not only mean.
+- Report p50/p95 and standard deviation, not only mean.
+- Record `tokens/sec/GPU` or `samples/sec/GPU` for distributed runs.
+- Record peak allocated and reserved CUDA memory.
+- Use `scripts/step_timer.py` to summarize raw timing arrays.
 
-## PyTorch Profiler Pass
+## Level 1: PyTorch Profiler Pass
 
 Use a short scheduled trace:
 
@@ -62,6 +65,22 @@ with profile(
 
 Use `record_function` ranges for `data_to_device`, `forward`, `backward`, `optimizer_step`, `logging`, `eval`, and `checkpoint` when the code is easy to annotate.
 
+Profiler overhead rules:
+
+- Keep `record_shapes=False` and `with_stack=False` for the first pass.
+- Enable `record_shapes`, `with_stack`, or `with_flops` only for targeted passes.
+- Avoid making conclusions from a trace that includes compile cold start unless cold start is the actual problem.
+- For memory investigations, prefer dedicated memory history/snapshot passes over leaving heavy memory tracing enabled for every run.
+
+## Level 2: Systems and Memory Profiling
+
+Escalate when PyTorch profiler identifies a suspicious region but not the cause:
+
+- Use Nsight Systems for CPU/GPU overlap, kernel launch gaps, NCCL scheduling, dataloader gaps, and host-to-device transfer overlap.
+- Use Nsight Compute when one or two kernels dominate and occupancy, memory bandwidth, tensor-core use, or instruction mix matters.
+- Use `torch.cuda.memory._record_memory_history()` and memory snapshots for allocation churn or fragmentation investigations.
+- For distributed jobs, inspect rank imbalance and rank-local traces; one slow rank can stall the full job.
+
 ## What To Look For
 
 - Large CPU gaps before CUDA kernels: dataloader, preprocessing, collation, host-to-device transfer, or Python overhead.
@@ -71,8 +90,6 @@ Use `record_function` ranges for `data_to_device`, `forward`, `backward`, `optim
 - NCCL-dominated steps: communication-bound distributed training, rank imbalance, or poor overlap.
 - Periodic long steps: checkpoint, evaluation, visualization, W&B/TensorBoard, or sample export in the hot path.
 
-## Escalation
+## Before Editing
 
-- Use Nsight Systems when CPU/GPU overlap, kernel launch gaps, or NCCL scheduling need deeper inspection.
-- Use Nsight Compute when one or two kernels dominate and occupancy/memory bandwidth details matter.
-- Use framework-specific profilers only after the PyTorch-level trace identifies the suspicious region.
+After the trace identifies a likely fix, stop and ask the user to approve the specific change set. Use `references/change_confirmation.md`.
